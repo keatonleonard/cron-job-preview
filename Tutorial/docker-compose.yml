@@ -1,0 +1,20 @@
+# Starts the whole lab with one command:  docker compose up -d --build
+#
+# There are deliberately NO volumes mounted from your real computer. The lab
+# lives entirely inside the container, which is why the optional "chaos"
+# finale is safe and why a full reset is just these two commands:
+#     docker compose down
+#     docker compose up -d --build
+services:
+  lab:
+    build:
+      # Build context stays this folder, so the Dockerfile's COPY paths
+      # (lab/, web/) still work. The Dockerfile itself lives in docker/.
+      context: .
+      dockerfile: docker/Dockerfile
+    image: cron-lab:latest
+    container_name: cron-lab
+    ports:
+      # left side  = port on YOUR machine (open http://localhost:8080)
+      # right side = port inside the container
+      - "8080:8080"
