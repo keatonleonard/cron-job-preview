@@ -103,6 +103,9 @@ loses nothing but your own experiments.
 
 ## Rules & Tips
 
+- **Assumed background.** This challenge assumes you're comfortable with a few
+  basic Linux commands (`cd`, `ls`, `cat`) and with creating a small file from
+  the shell. Everything specific to the attack itself is explained in the hints.
 - **Explore first.** Get comfortable moving around the box and reading files
   before you try anything.
 - **No cracking required.** You should not brute-force, guess, or crack any
@@ -151,7 +154,9 @@ and the script it points to, but you are not allowed to edit root's script.
 Instead, look closely at the **permissions** of everything that script touches.
 Ask: is there a folder the job pulls its work from that *you* are allowed to
 write to? If you can place a file where root will run it, then root will run
-your commands for you, and root can read the flag.
+your commands for you, and root can read the flag. A clean way to collect it:
+have your script send the flag into somewhere you *can* read, such as a file in
+`/tmp`.
 
 </details>
 
