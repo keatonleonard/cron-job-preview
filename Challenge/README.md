@@ -1,6 +1,6 @@
-# Cron CTF — "Scheduled for Success"
+# Cron CTF: "Scheduled for Success"
 
-**ATT&CK Technique:** [T1053.003 — Scheduled Task/Job: Cron](https://attack.mitre.org/techniques/T1053/003/)
+**ATT&CK Technique:** [T1053.003 - Scheduled Task/Job: Cron](https://attack.mitre.org/techniques/T1053/003/)
 **Tactic:** Privilege Escalation (TA0004) · **Flag format:** `CYBER266{...}`
 **Estimated time:** 10–20 minutes · **Difficulty:** Beginner
 
@@ -8,13 +8,13 @@
 
 ## The Scenario
 
-You've landed a foothold on a company's Linux server as **`analyst`** — an
+You've landed a foothold on a company's Linux server as **`analyst`**, an
 ordinary, low-privilege user. Somewhere on this box, the administrator left a
 file that only **root** is allowed to read, and that file contains the flag.
 
 Your account can't read it. But you don't always have to *be* root to get root
-to do something for you. On a Unix system, **cron** — the built-in task
-scheduler — quietly runs jobs on a timer, and some of those jobs run as root.
+to do something for you. On a Unix system, **cron** (the built-in task
+scheduler) quietly runs jobs on a timer, and some of those jobs run as root.
 If an attacker can influence *what* one of those root jobs does, they can make
 root hand over its secrets.
 
@@ -36,7 +36,7 @@ CYBER266{...}
 ## Setup
 
 You only need **Docker Desktop** installed and running. Everything happens
-inside a disposable container — nothing you do can affect your real computer,
+inside a disposable container, so nothing you do can affect your real computer,
 and you can reset at any time.
 
 **1. Open a terminal in this `Challenge` folder.** (In File Explorer, open the
@@ -62,7 +62,7 @@ flag, so the flag is **not** written anywhere in these files.
 docker compose exec -u analyst ctf bash
 ```
 
-Confirm who you are — it should say `analyst`:
+Confirm who you are. It should say `analyst`:
 
 ```bash
 whoami
@@ -70,10 +70,10 @@ whoami
 
 > **Every command in this challenge runs _inside_ that container shell**, not
 > in your normal PowerShell window. If a command gives a "command not found"
-> or a Windows-looking error, you're outside the container — re-run the
+> or a Windows-looking error, you're outside the container, so re-run the
 > `docker compose exec` command above.
 
-**Reset at any time** (throws the box away and rebuilds it fresh — this also
+**Reset at any time** (throws the box away and rebuilds it fresh; this also
 generates a brand-new flag):
 
 ```bash
@@ -85,7 +85,7 @@ docker compose up -d --build
 ```
 
 **The lab watches itself.** If it ever gets into a broken state, it notices on
-its own — every shell you open will print a **"THE LAB LOOKS BROKEN"** banner
+its own: every shell you open will print a **"THE LAB LOOKS BROKEN"** banner
 with these same two reset commands. When in doubt, reset: it's quick, safe, and
 loses nothing but your own experiments.
 
@@ -103,44 +103,62 @@ loses nothing but your own experiments.
 
 ## Rules & Tips
 
-- **Start by looking around.** Who are you? What can you read? What runs
-  automatically on this system, and *as whom*? Unix keeps some of that
-  information in files any user can read.
-- **You do not need root's password**, and you should not try to brute-force or
-  guess anything. The path to the flag is a **misconfiguration**, not a secret.
-- **Cron runs on a timer.** After you make your move, you may need to **wait up
-  to 60 seconds** for the scheduler to act.
-- Think about the project's core lesson: a scheduled task that runs as root is
-  only as safe as the files it is allowed to touch.
+- **Explore first.** Get comfortable moving around the box and reading files
+  before you try anything.
+- **No cracking required.** You should not brute-force, guess, or crack any
+  password; the intended path does not rely on that kind of secret.
+- **Cron runs on a timer.** After you make a change, you may need to **wait up
+  to 60 seconds** for the scheduler to act, then check again.
 
 ---
 
-## Hint
+## Hints
+
+Try the hints in order, and only if you're stuck. The goal is to *understand*
+how a scheduled task becomes a privilege-escalation tool, not just to reach the
+flag.
 
 <details>
-<summary>Click to reveal Hint 1</summary>
+<summary>Click to reveal Hint 1 (how cron is written)</summary>
 
-Something on this box runs **as root every minute**. You can read *what* it is
-and *what it runs* — the schedule and the script it points to are both
-readable. You aren't meant to edit root's script. Instead, look closely at the
-**permissions** of everything that script uses, and ask: is there a place the
-runner pulls work from that *you* are allowed to write to?
+Cron is controlled by schedule lines in plain-text files, and the system-wide
+schedule in `/etc/crontab` is readable by **every** user. A cron line is five
+time fields, then (in the system crontab) the **user** the job runs as, then
+the command:
+
+```
+*  *  *  *  *   user   command-to-run
+|  |  |  |  |
+|  |  |  |  +--- day of week   (0-6)
+|  |  |  +------ month          (1-12)
+|  |  +--------- day of month   (1-31)
+|  +------------ hour           (0-23)
++--------------- minute         (0-59)
+```
+
+Five `*`s means "every minute." So a line like `* * * * * root /path/to/script`
+means "run that script **as root**, every minute." Start by reading
+`/etc/crontab` and asking: which jobs run as root, and what do they run?
+
+</details>
+
+<details>
+<summary>Click to reveal Hint 2 (the way in)</summary>
+
+You found a job that runs as root every minute. You can read both the schedule
+and the script it points to, but you are not allowed to edit root's script.
+
+Instead, look closely at the **permissions** of everything that script touches.
+Ask: is there a folder the job pulls its work from that *you* are allowed to
+write to? If you can place a file where root will run it, then root will run
+your commands for you, and root can read the flag.
 
 </details>
 
 ---
 
-## Stuck?
-
-A full step-by-step solution is in the instructor's **walkthrough document**
-(submitted separately). Try the hint and some exploring first — the goal is to
-*understand* how a scheduled task becomes a privilege-escalation tool, not just
-to reach the flag.
-
----
-
 ## Learn More
 
-- **[MITRE ATT&CK T1053.003 — Cron](https://attack.mitre.org/techniques/T1053/003/)** — the technique this challenge demonstrates.
-- **[crontab.guru](https://crontab.guru/)** — decode any cron schedule into plain English.
-- **[crontab(5) man page](https://man7.org/linux/man-pages/man5/crontab.5.html)** — the official crontab file-format reference.
+- **[MITRE ATT&CK T1053.003: Cron](https://attack.mitre.org/techniques/T1053/003/)**: the technique this challenge demonstrates.
+- **[crontab.guru](https://crontab.guru/)**: decode any cron schedule into plain English.
+- **[crontab(5) man page](https://man7.org/linux/man-pages/man5/crontab.5.html)**: the official crontab file-format reference.
