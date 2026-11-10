@@ -1,0 +1,17 @@
+# Start the challenge with one command:  docker compose up -d --build
+#
+# No host folders are mounted, so everything the player does stays sealed
+# inside the container. A full reset is just two commands:
+#     docker compose down
+#     docker compose up -d --build
+services:
+  ctf:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: cron-ctf:latest
+    container_name: cron-ctf
+    # Cap the number of processes so a runaway script inside the container
+    # (e.g. an accidental fork bomb) can't drag down the host. Plenty for the
+    # lab; a full reset still fixes anything that does go wrong.
+    pids_limit: 512
